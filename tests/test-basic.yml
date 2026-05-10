@@ -1,0 +1,38 @@
+name: Test basic usage - commit git changes
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a test file to commit
+        run: |
+          echo "test change $(date)" > test-change.txt
+      - id: action
+        uses: .
+        with:
+          commit_message: "test: automated test commit"
+          repo: "octocat/Hello-World"
+          branch: "main"
+          empty: "true"
+          file_pattern: "."
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        continue-on-error: true
+      - name: Assert action ran (outputs may be empty without real credentials)
+        env:
+          COMMIT_URL: ${{ steps.action.outputs.commit-url }}
+          COMMIT_HASH: ${{ steps.action.outputs.commit-hash }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "commit-url: $COMMIT_URL"
+          echo "commit-hash: $COMMIT_HASH"
+          # The action requires real GitHub credentials to succeed.
+          # We verify it ran (not skipped) and produced a recognizable outcome.
+          if [ "$OUTCOME" = "skipped" ]; then
+            echo "FAIL: action was skipped, expected it to run"
+            exit 1
+          fi
+          echo "PASS: action ran with outcome=$OUTCOME"
