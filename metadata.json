@@ -1,7 +1,0 @@
-{
-  "owner": "planetscale",
-  "name": "ghcommit-action",
-  "visibility": "public",
-  "description": "Commit git changes directly to GitHub using the GraphQL API",
-  "block_publish": false
-}
