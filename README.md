@@ -12,7 +12,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v0.2.17 | [`v0.2.17`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.17) | — |
 | v0.2.18 | [`v0.2.18`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.18) | — |
 | v0.2.19 | [`v0.2.19`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.19) | — |
-| v0.2.20 | [`v0.2.20`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.20) | — |
+| v0.2.20 | [`v0.2.20`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.20) | [`25309d8`](https://github.com/planetscale/ghcommit-action/commit/25309d8005ac7c3bcd61d3fe19b69e0fe47dbdde) |
 
 ## Privacy
 
