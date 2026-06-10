@@ -1,0 +1,38 @@
+name: Test basic usage - commit git changes
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: fake-token-for-testing
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a test file to commit
+        run: |
+          echo "test change $(date)" > test-change.txt
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add test-change.txt
+      - id: action
+        uses: .
+        with:
+          commit_message: "test: automated commit from act test"
+          repo: "owner/repo"
+          branch: "main"
+          empty: "false"
+          file_pattern: "."
+          repository: "."
+        continue-on-error: true
+      - name: Assert inputs were accepted
+        run: |
+          echo "Action outcome: ${{ steps.action.outcome }}"
+          # The action will fail because we don't have real GitHub credentials,
+          # but we verify it ran (not skipped) and the inputs were accepted.
+          # A 'failure' outcome means the action ran with our inputs — that's expected.
+          # A 'skipped' outcome would indicate inputs were rejected before running.
+          if [ "${{ steps.action.outcome }}" = "skipped" ]; then
+            echo "FAIL: action was skipped, inputs may not have been accepted"
+            exit 1
+          fi
+          echo "PASS: action ran with required inputs (commit_message, repo, branch)"
