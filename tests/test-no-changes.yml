@@ -1,0 +1,49 @@
+name: Test no changes detected (early exit)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Configure git identity (needed for git status to work cleanly)
+      - name: Configure git
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          # Ensure the workspace is truly clean (no modified tracked files)
+          git checkout -- .
+
+      # When there are no changes and empty=false, the action should exit 0 early
+      # without making any GitHub API call. No git remote setup needed since
+      # ghcommit is never called.
+      - id: action
+        uses: .
+        env:
+          HOME: /tmp
+        with:
+          commit_message: "test: no changes commit"
+          repo: ${{ github.repository }}
+          branch: act-harness
+          empty: "false"
+          file_pattern: "."
+
+      - name: Assert action completed (no changes means early exit with no outputs)
+        env:
+          COMMIT_URL: ${{ steps.action.outputs.commit-url }}
+          COMMIT_HASH: ${{ steps.action.outputs.commit-hash }}
+        run: |
+          echo "commit-url: '$COMMIT_URL'"
+          echo "commit-hash: '$COMMIT_HASH'"
+          # When no changes are detected and empty=false, the action exits early
+          # without setting outputs — both outputs should be empty
+          if [ -n "$COMMIT_URL" ]; then
+            echo "FAIL: expected no commit-url output when there are no changes"
+            exit 1
+          fi
+          if [ -n "$COMMIT_HASH" ]; then
+            echo "FAIL: expected no commit-hash output when there are no changes"
+            exit 1
+          fi
+          echo "PASS: action exited early with no outputs (no changes detected)"

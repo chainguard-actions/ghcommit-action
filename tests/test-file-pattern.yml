@@ -1,0 +1,55 @@
+name: Test file_pattern filtering (no matching changes)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Configure git identity
+      - name: Configure git
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+
+      # Create and STAGE a .txt file. The entrypoint only processes staged changes
+      # (A/M/T/D/R statuses). With file_pattern="*.js", git status -- "*.js" will
+      # not show the .txt file, so no matching changes are detected and the action
+      # exits early without making any API call.
+      - name: Create and stage a file that does NOT match the file_pattern
+        run: |
+          echo "test content" > "$GITHUB_WORKSPACE/test-change.txt"
+          git add "$GITHUB_WORKSPACE/test-change.txt"
+
+      # With file_pattern="*.js" and only a staged .txt file, no matching changes
+      # should be detected and the action should exit early without making any API call.
+      - id: action
+        uses: .
+        env:
+          HOME: /tmp
+        with:
+          commit_message: "test: file pattern filtering"
+          repo: ${{ github.repository }}
+          branch: act-harness
+          empty: "false"
+          file_pattern: "*.js"
+
+      - name: Assert no outputs (file_pattern filtered out all changes)
+        env:
+          COMMIT_URL: ${{ steps.action.outputs.commit-url }}
+          COMMIT_HASH: ${{ steps.action.outputs.commit-hash }}
+        run: |
+          echo "commit-url: '$COMMIT_URL'"
+          echo "commit-hash: '$COMMIT_HASH'"
+          # The *.js pattern should not match the .txt file, so no changes are
+          # detected and the action exits early without setting outputs
+          if [ -n "$COMMIT_URL" ]; then
+            echo "FAIL: expected no commit-url when file_pattern filters out all changes"
+            exit 1
+          fi
+          if [ -n "$COMMIT_HASH" ]; then
+            echo "FAIL: expected no commit-hash when file_pattern filters out all changes"
+            exit 1
+          fi
+          echo "PASS: action exited early — file_pattern correctly filtered out non-matching files"
