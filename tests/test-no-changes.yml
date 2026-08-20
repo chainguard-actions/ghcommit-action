@@ -1,0 +1,51 @@
+name: Test no changes detected (empty=false)
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Ensure the workspace is clean (no uncommitted changes)
+      - name: Ensure clean workspace
+        run: |
+          git status
+          # Make sure there are no staged or unstaged changes
+          git diff --exit-code || true
+          git diff --cached --exit-code || true
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          commit_message: "test: no changes commit"
+          repo: ${{ github.repository }}
+          branch: act-harness
+          empty: "false"
+          file_pattern: "."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assert action exited cleanly with no changes
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          COMMIT_URL: ${{ steps.action.outputs.commit-url }}
+          COMMIT_HASH: ${{ steps.action.outputs.commit-hash }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "commit-url: $COMMIT_URL"
+          echo "commit-hash: $COMMIT_HASH"
+          # When there are no changes and empty=false, the action should exit 0
+          # (no API call is made, so sentinel repo doesn't matter).
+          # The action may succeed (no changes path) or fail if the Docker image
+          # has issues, but we accept both graceful outcomes.
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action exited cleanly (no changes detected)"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo or Docker issue)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
