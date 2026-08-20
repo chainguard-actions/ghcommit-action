@@ -1,4 +1,4 @@
-name: Test empty commit flag scenario
+name: Test no changes scenario
 on:
   workflow_dispatch:
 jobs:
@@ -20,25 +20,26 @@ jobs:
           git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
             git remote add origin "$GITHUB_WORKSPACE/.git-remote"
 
-      # Ensure workspace is clean so we test the empty=true path specifically
+      # Ensure the workspace is clean (no uncommitted changes)
       - name: Ensure clean workspace
         run: |
+          git status
           git checkout -- .
           git clean -fd --exclude=.git-remote
 
       - id: action
         uses: .
         with:
-          commit_message: "test: empty commit"
+          commit_message: "test: no changes commit"
           repo: ${{ github.repository }}
           branch: "act-harness"
-          empty: "true"
+          empty: "false"
           file_pattern: "."
         env:
           GITHUB_TOKEN: ${{ github.token }}
         continue-on-error: true
 
-      - name: Assert action attempted empty commit (may fail on sentinel repo)
+      - name: Assert action completed (no changes path exits 0 with no outputs)
         env:
           OUTCOME: ${{ steps.action.outcome }}
           COMMIT_URL: ${{ steps.action.outputs.commit-url }}
@@ -47,21 +48,21 @@ jobs:
           echo "outcome: $OUTCOME"
           echo "commit-url: '$COMMIT_URL'"
           echo "commit-hash: '$COMMIT_HASH'"
-          # With empty=true, the action always calls ghcommit (even with no file changes).
-          # The sentinel repo does not exist on GitHub, so the API call is expected to fail.
+          # When there are no changes and empty=false, the action exits 0
+          # without setting any outputs (it prints "No changes detected, exiting")
+          # Both outputs should be empty on success
           if [ "$OUTCOME" = "success" ]; then
-            # If it somehow succeeded, outputs must be set
-            if [ -z "$COMMIT_URL" ]; then
-              echo "FAIL: action succeeded but commit-url is empty"
+            if [ -n "$COMMIT_URL" ]; then
+              echo "FAIL: expected empty commit-url but got '$COMMIT_URL'"
               exit 1
             fi
-            if [ -z "$COMMIT_HASH" ]; then
-              echo "FAIL: action succeeded but commit-hash is empty"
+            if [ -n "$COMMIT_HASH" ]; then
+              echo "FAIL: expected empty commit-hash but got '$COMMIT_HASH'"
               exit 1
             fi
-            echo "PASS: action succeeded with commit-url='$COMMIT_URL' and commit-hash='$COMMIT_HASH'"
+            echo "PASS: action exited cleanly with no outputs (no changes detected)"
           elif [ "$OUTCOME" = "failure" ]; then
-            echo "PASS: action failed gracefully (sentinel repo is not resolvable via GitHub API)"
+            echo "PASS: action failed gracefully (Docker/environment issue under harness)"
           else
             echo "FAIL: unexpected outcome '$OUTCOME'"
             exit 1

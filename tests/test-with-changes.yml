@@ -1,4 +1,4 @@
-name: Test empty commit flag scenario
+name: Test with file changes scenario
 on:
   workflow_dispatch:
 jobs:
@@ -20,25 +20,25 @@ jobs:
           git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
             git remote add origin "$GITHUB_WORKSPACE/.git-remote"
 
-      # Ensure workspace is clean so we test the empty=true path specifically
-      - name: Ensure clean workspace
+      # Create and stage a modified file so the action detects changes
+      - name: Create and stage a modified file
         run: |
-          git checkout -- .
-          git clean -fd --exclude=.git-remote
+          echo "test change $(date)" > "$GITHUB_WORKSPACE/test-change.txt"
+          git add "$GITHUB_WORKSPACE/test-change.txt"
 
       - id: action
         uses: .
         with:
-          commit_message: "test: empty commit"
+          commit_message: "test: commit with changes"
           repo: ${{ github.repository }}
           branch: "act-harness"
-          empty: "true"
+          empty: "false"
           file_pattern: "."
         env:
           GITHUB_TOKEN: ${{ github.token }}
         continue-on-error: true
 
-      - name: Assert action attempted empty commit (may fail on sentinel repo)
+      - name: Assert action ran and attempted commit (may fail on sentinel repo)
         env:
           OUTCOME: ${{ steps.action.outcome }}
           COMMIT_URL: ${{ steps.action.outputs.commit-url }}
@@ -47,8 +47,6 @@ jobs:
           echo "outcome: $OUTCOME"
           echo "commit-url: '$COMMIT_URL'"
           echo "commit-hash: '$COMMIT_HASH'"
-          # With empty=true, the action always calls ghcommit (even with no file changes).
-          # The sentinel repo does not exist on GitHub, so the API call is expected to fail.
           if [ "$OUTCOME" = "success" ]; then
             # If it somehow succeeded, outputs must be set
             if [ -z "$COMMIT_URL" ]; then
