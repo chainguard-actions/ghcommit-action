@@ -9,7 +9,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
 | v0.2.16 | [`v0.2.16`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.16) | [`7c35cae`](https://github.com/planetscale/ghcommit-action/commit/7c35caed9937939812c7d4242ffab823e9b3b1fa) |
-| v0.2.17 | [`v0.2.17`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.17) | — |
+| v0.2.17 | [`v0.2.17`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.17) | [`322be96`](https://github.com/planetscale/ghcommit-action/commit/322be9669498a4be9ce66efc1169f8f43f6bd883) |
 | v0.2.18 | [`v0.2.18`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.18) | — |
 | v0.2.19 | [`v0.2.19`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.19) | — |
 | v0.2.20 | [`v0.2.20`](https://github.com/chainguard-actions/planetscale-ghcommit-action/tree/v0.2.20) | [`25309d8`](https://github.com/planetscale/ghcommit-action/commit/25309d8005ac7c3bcd61d3fe19b69e0fe47dbdde) |
