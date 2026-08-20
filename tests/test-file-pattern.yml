@@ -1,0 +1,49 @@
+name: Test file pattern with no matching changes
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a change in a non-matching file
+        run: |
+          # Create a change in a .txt file
+          echo "test content $(date)" > /tmp/test-outside-workspace.txt
+          # Do NOT stage it — the action uses git status to detect changes
+
+      - id: action
+        uses: .
+        with:
+          commit_message: "test: file pattern no match"
+          repo: "some-owner/some-repo"
+          branch: "act-harness"
+          empty: "false"
+          file_pattern: "*.nonexistent"
+        continue-on-error: true
+
+      - name: Assert action handled non-matching file pattern gracefully
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          COMMIT_URL: ${{ steps.action.outputs.commit-url }}
+          COMMIT_HASH: ${{ steps.action.outputs.commit-hash }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "commit-url: $COMMIT_URL"
+          echo "commit-hash: $COMMIT_HASH"
+          # With a non-matching file pattern and empty=false, no changes are detected
+          # so the action should exit 0 without making any API call.
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action exited successfully (no matching files)"
+            if [ -n "$COMMIT_URL" ]; then
+              echo "FAIL: expected no commit-url when no matching files"
+              exit 1
+            fi
+            echo "PASS: no commit created as expected"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

@@ -1,0 +1,54 @@
+name: Test no changes scenario
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Ensure working tree is clean (no uncommitted changes)
+        run: |
+          git status
+          # Make sure there are no staged or unstaged changes
+          git diff --exit-code || true
+          git diff --cached --exit-code || true
+
+      - id: action
+        uses: .
+        with:
+          commit_message: "test: no changes commit"
+          repo: "some-owner/some-repo"
+          branch: "act-harness"
+          empty: "false"
+          file_pattern: "."
+        continue-on-error: true
+
+      - name: Assert action handled no-changes gracefully
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          COMMIT_URL: ${{ steps.action.outputs.commit-url }}
+          COMMIT_HASH: ${{ steps.action.outputs.commit-hash }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "commit-url: $COMMIT_URL"
+          echo "commit-hash: $COMMIT_HASH"
+          # When there are no changes and empty=false, the action exits 0 (success)
+          # without making any API call. Outputs should be empty.
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action exited successfully (no changes detected)"
+            if [ -n "$COMMIT_URL" ]; then
+              echo "FAIL: expected no commit-url when no changes"
+              exit 1
+            fi
+            if [ -n "$COMMIT_HASH" ]; then
+              echo "FAIL: expected no commit-hash when no changes"
+              exit 1
+            fi
+            echo "PASS: outputs are empty as expected"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

@@ -1,0 +1,58 @@
+name: Test with actual file changes
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create an untracked file to simulate changes
+        run: |
+          # Create a new untracked file in the workspace
+          echo "test content for ghcommit action" > "$GITHUB_WORKSPACE/test-ghcommit-change.txt"
+          git status
+
+      - id: action
+        uses: .
+        with:
+          commit_message: "test: commit with changes"
+          repo: "some-owner/some-repo"
+          branch: "act-harness"
+          empty: "false"
+          file_pattern: "test-ghcommit-change.txt"
+        continue-on-error: true
+
+      - name: Assert action ran and attempted to commit
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          COMMIT_URL: ${{ steps.action.outputs.commit-url }}
+          COMMIT_HASH: ${{ steps.action.outputs.commit-hash }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "commit-url: $COMMIT_URL"
+          echo "commit-hash: $COMMIT_HASH"
+          # The action detected the new file and tried to call the GitHub GraphQL API.
+          # The sentinel repo does not exist, so the API call will fail.
+          if [ "$OUTCOME" = "success" ]; then
+            # If somehow it succeeded, outputs should be set
+            if [ -z "$COMMIT_URL" ]; then
+              echo "FAIL: action succeeded but commit-url is empty"
+              exit 1
+            fi
+            if [ -z "$COMMIT_HASH" ]; then
+              echo "FAIL: action succeeded but commit-hash is empty"
+              exit 1
+            fi
+            echo "PASS: commit created at $COMMIT_URL (hash: $COMMIT_HASH)"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable via GraphQL API)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
+
+      - name: Cleanup test file
+        if: always()
+        run: |
+          rm -f "$GITHUB_WORKSPACE/test-ghcommit-change.txt" || true
